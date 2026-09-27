@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SeedMath - honest seed math</title>
+<style>
+  :root { --bg:#141a12; --card:#1d2619; --ink:#f1f4ec; --dim:#a9b59c; --acc:#8fce6a; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  header { padding:28px 24px 8px; max-width:980px; margin:0 auto; display:flex; justify-content:space-between; align-items:baseline; }
+  h1 { margin:0; font-size:28px; }
+  h1 span { color:var(--acc); }
+  nav a { color:var(--dim); text-decoration:none; font-size:14px; }
+  main { max-width:980px; margin:0 auto; padding:16px 24px 60px; display:grid; gap:18px; }
+  .card { background:var(--card); border-radius:14px; padding:20px; }
+  .card h2 { margin:0 0 12px; font-size:13px; letter-spacing:1.5px; color:var(--dim); text-transform:uppercase; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:14px; }
+  label { display:block; font-size:13px; color:var(--dim); margin-bottom:4px; }
+  input, select { width:100%; background:#151d12; border:1px solid #44543a; color:var(--ink); border-radius:8px; padding:9px 10px; font-size:15px; }
+  .hint { font-size:12.5px; color:var(--dim); margin-top:10px; }
+  button { cursor:pointer; border:0; border-radius:9px; padding:11px 16px; font-size:15px; background:var(--acc); color:#1d2b12; font-weight:600; }
+  button.ghost { background:#31402a; color:var(--ink); font-weight:500; }
+  .row { display:flex; gap:10px; flex-wrap:wrap; margin-top:14px; }
+  .verdict { font-size:17px; line-height:1.65; }
+  .verdict b { color:var(--acc); }
+  .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-top:16px; }
+  .stat { background:#151d12; border-radius:10px; padding:12px; }
+  .stat .v { font-size:19px; font-weight:700; color:var(--acc); }
+  .stat .k { font-size:12px; color:var(--dim); margin-top:2px; }
+  table.bd { width:100%; border-collapse:collapse; margin-top:6px; font-size:14.5px; }
+  table.bd td { padding:7px 4px; border-bottom:1px solid #2c3826; }
+  table.bd td:last-child { text-align:right; color:var(--acc); font-weight:600; }
+  .fine { font-size:12.5px; color:var(--dim); margin-top:8px; }
+  a { color:var(--acc); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Seed<span>Math</span></h1>
+  <nav><a href="index.html">about</a></nav>
+</header>
+<main>
+  <section class="card">
+    <h2>Your season</h2>
+    <div class="grid">
+      <div>
+        <label for="lastFrost">Last spring frost</label>
+        <input id="lastFrost" type="date" value="2027-04-15">
+      </div>
+      <div>
+        <label for="fallFrost">First fall frost</label>
+        <input id="fallFrost" type="date" value="2027-10-20">
+      </div>
+    </div>
+    <div class="row" id="cities"></div>
+    <div class="hint">Every date on a seed packet - "start indoors 6-8 weeks before last frost", "sow after danger of frost" - is the same two dates doing all the work. Set yours once.</div>
+  </section>
+
+  <section class="card">
+    <h2>Crop calendar</h2>
+    <div class="grid">
+      <div>
+        <label for="crop">Crop</label>
+        <select id="crop"></select>
+      </div>
+    </div>
+    <div class="verdict" id="verdict" style="margin-top:14px"></div>
+    <div class="stats" id="stats"></div>
+    <div id="succWrap" style="display:none">
+      <table class="bd" id="succ"></table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Bed planner</h2>
+    <div class="grid">
+      <div>
+        <label for="bedL">Bed length (ft)</label>
+        <input id="bedL" type="number" min="1" max="40" step="0.5" value="8">
+      </div>
+      <div>
+        <label for="bedW">Bed width (ft)</label>
+        <input id="bedW" type="number" min="1" max="40" step="0.5" value="4">
+      </div>
+    </div>
+    <div class="stats" id="bedStats"></div>
+    <div class="fine" id="bedFine"></div>
+  </section>
+
+  <section class="card">
+    <h2>Whole garden at a glance</h2>
+    <table class="bd" id="all"></table>
+    <div class="fine">First action date per crop: indoor start when the crop needs a head start, direct sow otherwise. Days-to-maturity runs from transplant for indoor crops, from sowing for direct-sown ones - that is the convention on the packet too.</div>
+  </section>
+
+  <section class="card">
+    <h2>The honest part</h2>
+    <div class="verdict" style="font-size:15px">
+      Seed packets quote plant counts you will never reach: they assume every seed sprouts. SeedMath divides by the crop's real germination rate, so the packet count covers the stand you actually want. Succession sowings stop at the last date whose harvest still beats your fall frost - a sowing that freezes green is not a sowing, it is compost.
+    </div>
+  </section>
+</main>
+<script src="engine.js"></script>
+<script>
+(function () {
+  var CITIES = [
+    ['Atlanta', '2027-03-20', '2027-11-15'],
+    ['Chicago', '2027-04-25', '2027-10-15'],
+    ['Denver', '2027-05-05', '2027-10-05'],
+    ['New York', '2027-04-15', '2027-10-20'],
+    ['Seattle', '2027-03-25', '2027-11-10']
+  ];
+  var MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function pretty(iso) {
+    var p = iso.split('-');
+    return MONTHS[Number(p[1]) - 1] + ' ' + Number(p[2]);
+  }
+  var cropSel = document.getElementById('crop');
+  Object.keys(SeedEngine.CROPS).forEach(function (k) {
+    var o = document.createElement('option');
+    o.value = k; o.textContent = SeedEngine.CROPS[k].name;
+    cropSel.appendChild(o);
+  });
+  var cityWrap = document.getElementById('cities');
+  CITIES.forEach(function (c) {
+    var b = document.createElement('button');
+    b.className = 'ghost'; b.textContent = c[0];
+    b.addEventListener('click', function () {
+      document.getElementById('lastFrost').value = c[1];
+      document.getElementById('fallFrost').value = c[2];
+      render();
+    });
+    cityWrap.appendChild(b);
+  });
+  function stat(v, k) { return '<div class="stat"><div class="v">' + v + '</div><div class="k">' + k + '</div></div>'; }
+  function render() {
+    var lf = document.getElementById('lastFrost').value;
+    var ff = document.getElementById('fallFrost').value;
+    if (!lf || !ff) return;
+    var key = cropSel.value;
+    var c = SeedEngine.CROPS[key];
+    var cal = SeedEngine.cropCalendar(key, lf, ff);
+    var v = document.getElementById('verdict');
+    if (cal.startIndoor) {
+      v.innerHTML = 'Start <b>' + c.name + '</b> indoors <b>' + pretty(cal.startIndoor) + '</b>, transplant <b>' + pretty(cal.transplant) + '</b>, first harvest around <b>' + pretty(cal.harvest) + '</b>.' +
+        (cal.directSow ? ' Rather skip the windowsill? Direct sow <b>' + pretty(cal.directSow) + '</b>.' : '');
+    } else {
+      v.innerHTML = '<b>' + c.name + '</b> hates transplanting. Direct sow <b>' + pretty(cal.directSow) + '</b>, first harvest around <b>' + pretty(cal.harvest) + '</b>.';
+    }
+    var s = '';
+    if (cal.startIndoor) s += stat(pretty(cal.startIndoor), 'start indoors');
+    if (cal.transplant) s += stat(pretty(cal.transplant), 'transplant out');
+    if (cal.directSow) s += stat(pretty(cal.directSow), 'direct sow');
+    s += stat(pretty(cal.harvest), 'first harvest');
+    s += stat(c.spacingIn + ' in', 'spacing');
+    document.getElementById('stats').innerHTML = s;
+    var sw = document.getElementById('succWrap');
+    if (cal.successions.length > 1) {
+      sw.style.display = '';
+      var rows = '<tr><td>Sow again every ' + c.succession + ' days until the fall frost cuts it off:</td><td></td></tr>';
+      cal.successions.forEach(function (d, i) {
+        rows += '<tr><td>Sowing ' + (i + 1) + '</td><td>' + pretty(d) + '</td></tr>';
+      });
+      document.getElementById('succ').innerHTML = rows;
+    } else { sw.style.display = 'none'; }
+    // bed planner
+    var L = Number(document.getElementById('bedL').value) || 0;
+    var W = Number(document.getElementById('bedW').value) || 0;
+    var plants = SeedEngine.plantsForBed(L, W, c.spacingIn);
+    var seeds = SeedEngine.seedsNeeded(plants, c.germ);
+    var packets = SeedEngine.packetsNeeded(seeds, c.packet);
+    document.getElementById('bedStats').innerHTML =
+      stat(plants, c.name + ' plants fit') +
+      stat(seeds, 'seeds to sow (' + Math.round(c.germ * 100) + '% germ)') +
+      stat(packets, 'packet' + (packets === 1 ? '' : 's') + ' of ' + c.packet);
+    document.getElementById('bedFine').textContent = 'A ' + L + ' x ' + W + ' ft bed at ' + c.spacingIn + ' in spacing. Packet count is rounded up from the seeds you need, not the plants you hope for.';
+    // whole garden
+    var rows = '';
+    Object.keys(SeedEngine.CROPS).forEach(function (k2) {
+      var cc = SeedEngine.CROPS[k2];
+      var cal2 = SeedEngine.cropCalendar(k2, lf, ff);
+      var first = cal2.startIndoor ? pretty(cal2.startIndoor) + ' (indoors)' : pretty(cal2.directSow) + ' (sow)';
+      rows += '<tr><td>' + cc.name + '</td><td>' + first + '</td></tr>';
+    });
+    document.getElementById('all').innerHTML = rows;
+  }
+  ['lastFrost', 'fallFrost', 'bedL', 'bedW'].forEach(function (id) {
+    document.getElementById(id).addEventListener('input', render);
+  });
+  cropSel.addEventListener('change', render);
+  render();
+})();
+</script>
+</body>
+</html>
